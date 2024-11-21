@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de bins - Cherry Harvest</title>
+  <style>
+    /* Simple, responsive design */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f7f7f7;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      font-size: 1.5em;
+      text-align: center;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select, textarea, button {
+      padding: 0.8em;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    @media (max-width: 480px) {
+      .container {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Registro Acopio</h1>
+    <form id="bin-form">
+      <!-- Fields for Bin Registration -->
+      <label for="contractor">Contratista:</label>
+      <select id="contractor" name="contractor">
+        <option value="">Selecciona o agrega un contratista</option>
+      </select>
+      <button type="button" id="new-contractor">+ Agregar Contratista</button>
+      <input type="text" id="input-new-contractor" placeholder="Enter contractor name" style="display: none;">
+
+      <label for="box-status">Cantidad de cajas:</label>
+      <select id="box-status" name="box-status">
+        <option value="complete" selected>Completo (24 cajas)</option>
+        <option value="incomplete">Incompleto</option>
+      </select>
+      <input type="number" id="boxes" name="boxes" placeholder="Number of boxes" min="0" max="24" style="display: none;">
+
+      <label for="squad">Cuadrilla:</label>
+      <input type="text" id="squad" name="squad" placeholder="Ingrese Cuadrilla" required>
+
+      <label for="quality">Calidad / Observación:</label>
+      <textarea id="quality" name="quality" placeholder="Introduzca observaciones si es necesario"></textarea>
+
+      <label for="plot">Cuartel:</label>
+      <select id="plot" name="plot">
+        <option value="">Select or add a new plot</option>
+      </select>
+      <button type="button" id="new-plot">+ Agregar nuevo cuartel</button>
+      <input type="text" id="input-new-plot" placeholder="Ingrese Cuartel" style="display: none;">
+
+      <label for="variety">Variedad:</label>
+      <select id="variety" name="variety">
+        <option value="">Select or add a new variety</option>
+      </select>
+      <button type="button" id="new-variety">+ Agregar variedad</button>
+      <input type="text" id="input-new-variety" placeholder="Ingrese Variedad" style="display: none;">
+
+      <label for="temperature">Temperatura:</label>
+      <input type="number" id="temperature" name="temperature" placeholder="Ingrese temperatura" step="0.1" required>
+
+      <label for="brix">Brix:</label>
+      <input type="number" id="brix" name="brix" placeholder="Ingrese Brix" step="0.1" required>
+
+      <label for="caliber">Muestras de calibre:</label>
+      <div style="display: flex; gap: 0.5em;">
+        <input type="number" id="caliber-sample-1" name="caliber-sample-1" placeholder="Muestra" step="0.1" required>
+        <input type="number" id="caliber-sample-2" name="caliber-sample-2" placeholder="Muestra" step="0.1" required>
+        <input type="number" id="caliber-sample-3" name="caliber-sample-3" placeholder="Muestra" step="0.1" required>
+        <input type="number" id="caliber-sample-4" name="caliber-sample-4" placeholder="Muestra" step="0.1" required>
+      </div>
+      <p>Calibre promedio: <span id="caliber-average">-</span></p>
+
+      <label for="color">Color (1-5):</label>
+      <input type="number" id="color" name="color" placeholder="Ingrese color" min="1" max="5" required>
+
+      <label for="bin-id">Numero bin:</label>
+      <input type="text" id="bin-id" name="bin-id" placeholder="Ingrese numero de Bin" required>
+
+      <button type="submit">Registrar Bin</button>
+    </form>
+
+    <button id="reset-data" style="background-color: red;">Borrar Datos</button>
+
+    <h2>Datos Registrados:</h2>
+    <div class="table-container">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th>Contratista</th>
+            <th>Cajas</th>
+            <th>Cuadrilla</th>
+            <th>Numero Bin</th>
+            <th>Cuartel</th>
+            <th>Variedad</th>
+            <th>Temperatura</th>
+            <th>Brix</th>
+            <th>Color</th>
+            <th>Calibre promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Aquí se llenan los datos dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+    
+    
+
+
+    <button id="download-txt">Descargar Datos</button>
+    <script> 
+document.addEventListener('DOMContentLoaded', () => {
+  const bins = JSON.parse(localStorage.getItem('bins')) || [];
+  const contractors = JSON.parse(localStorage.getItem('contractors')) || [];
+  const plots = JSON.parse(localStorage.getItem('plots')) || [];
+  const varieties = JSON.parse(localStorage.getItem('varieties')) || [];
+
+  const caliberInputs = [
+    document.getElementById('caliber-sample-1'),
+    document.getElementById('caliber-sample-2'),
+    document.getElementById('caliber-sample-3'),
+    document.getElementById('caliber-sample-4')
+  ];
+
+  // Cargar dropdowns al iniciar
+  loadDropdownData();
+  updateTable();
+
+  caliberInputs.forEach(input => {
+    input.addEventListener('input', updateCaliberAverage);
+  });
+
+  document.getElementById('bin-form').addEventListener('submit', registerBin);
+  document.getElementById('new-contractor').addEventListener('click', () => addNewValue('contractor', contractors, 'input-new-contractor', 'contractors'));
+  document.getElementById('new-plot').addEventListener('click', () => addNewValue('plot', plots, 'input-new-plot', 'plots'));
+  document.getElementById('new-variety').addEventListener('click', () => addNewValue('variety', varieties, 'input-new-variety', 'varieties'));
+  document.getElementById('download-txt').addEventListener('click', downloadAsTxt);
+
+  function loadDropdownData() {
+    updateDropdown('contractor', contractors);
+    updateDropdown('plot', plots);
+    updateDropdown('variety', varieties);
+  }
+
+  function updateDropdown(id, data) {
+    const dropdown = document.getElementById(id);
+    dropdown.innerHTML = `<option value="">Selecciona o agrega uno</option>`;
+    data.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item;
+      option.textContent = item;
+      dropdown.appendChild(option);
+    });
+  }
+
+  function addNewValue(dropdownId, list, inputId, storageKey) {
+    const input = document.getElementById(inputId);
+    if (input.style.display === 'none' || !input.value.trim()) {
+      input.style.display = 'block';
+      input.focus();
+    } else {
+      const value = normalizeText(input.value);
+      if (!list.includes(value)) {
+        list.push(value);
+        localStorage.setItem(storageKey, JSON.stringify(list));
+        updateDropdown(dropdownId, list);
+        input.value = '';
+        input.style.display = 'none';
+      } else {
+        alert(`${value} Ya esta registrado!`);
+        input.value = '';
+        input.style.display = 'none';
+      }
+    }
+  }
+
+  function updateCaliberAverage() {
+    const values = caliberInputs.map(input => parseFloat(input.value) || 0);
+    const average = values.filter(v => v > 0).reduce((a, b) => a + b, 0) / values.length || 0;
+    document.getElementById('caliber-average').textContent = average.toFixed(2);
+  }
+
+  function registerBin(event) {
+    event.preventDefault();
+
+    const contractor = document.getElementById('contractor').value.trim();
+    const squad = document.getElementById('squad').value.trim();
+    const binId = document.getElementById('bin-id').value.trim();
+    const plot = document.getElementById('plot').value.trim();
+    const variety = document.getElementById('variety').value.trim();
+    const temperature = parseFloat(document.getElementById('temperature').value.trim());
+    const brix = parseFloat(document.getElementById('brix').value.trim());
+    const color = parseInt(document.getElementById('color').value.trim());
+    const caliberAverage = parseFloat(document.getElementById('caliber-average').textContent);
+    const boxStatus = document.getElementById('box-status').value;
+    const boxes = boxStatus === 'complete' ? 24 : parseInt(document.getElementById('boxes').value.trim()) || 0;
+
+    if (!contractor || !squad || !binId || !plot || isNaN(temperature) || isNaN(brix) || isNaN(color) || isNaN(caliberAverage)) {
+      alert('Por favor complete todos los campos requeridos correctamente.');
+      return;
+    }
+
+    const newBin = {
+      contractor,
+      squad,
+      binId,
+      plot,
+      variety,
+      temperature,
+      brix,
+      color,
+      caliber: caliberAverage,
+      boxes
+    };
+
+    bins.push(newBin);
+    localStorage.setItem('bins', JSON.stringify(bins));
+    updateTable();
+    document.getElementById('bin-form').reset();
+    document.getElementById('caliber-average').textContent = '-';
+  }
+
+  function updateTable() {
+    const tableBody = document.getElementById('data-table').querySelector('tbody');
+    tableBody.innerHTML = '';
+    bins.forEach(bin => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${bin.contractor}</td>
+        <td>${bin.boxes}</td>
+        <td>${bin.squad}</td>
+        <td>${bin.binId}</td>
+        <td>${bin.plot}</td>
+        <td>${bin.variety}</td>
+        <td>${bin.temperature}</td>
+        <td>${bin.brix}</td>
+        <td>${bin.color}</td>
+        <td>${bin.caliber}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+
+  function downloadAsTxt() {
+    if (bins.length === 0) {
+      alert('No hay datos disponibles para descargar.');
+      return;
+    }
+
+    const headers = 'Contratista;Cajas;Cuadrilla;Numero Bin;Cuartel;Variedad;Temperatura;Brix;Color;Calibre\n';
+    const content = bins.map(bin =>
+      `${bin.contractor};${bin.boxes};${bin.squad};${bin.binId};${bin.plot};${bin.variety};${bin.temperature};${bin.brix};${bin.color};${bin.caliber}`
+    ).join('\n');
+
+    const blob = new Blob([headers + content], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'bins.txt';
+    link.click();
+  }
+
+  function normalizeText(text) {
+    return text.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+});
+
+document.getElementById('reset-data').addEventListener('click', resetData);
+
+function resetData() {
+  const confirmation = confirm('Are you sure you want to reset all data? This action cannot be undone.');
+  if (confirmation) {
+    // Limpiar localStorage
+    localStorage.removeItem('bins');
+    localStorage.removeItem('contractors');
+    localStorage.removeItem('plots');
+    localStorage.removeItem('varieties');
+
+    // Limpiar datos en memoria
+    bins.length = 0;
+    contractors.length = 0;
+    plots.length = 0;
+    varieties.length = 0;
+
+    // Refrescar la página para aplicar los cambios
+    alert('All data has been reset successfully.');
+    location.reload();
+  }
+}
+
+document.getElementById('box-status').addEventListener('change', handleBoxStatus);
+
+function handleBoxStatus() {
+  const boxStatus = document.getElementById('box-status').value;
+  const boxInput = document.getElementById('boxes');
+
+  if (boxStatus === 'incomplete') {
+    boxInput.style.display = 'block'; // Muestra el input si está incompleto
+    boxInput.required = true;         // Marca el campo como obligatorio
+  } else {
+    boxInput.style.display = 'none';  // Oculta el input si está completo
+    boxInput.required = false;        // Desmarca el campo como obligatorio
+    boxInput.value = '';              // Limpia el valor del input
+  }
+}
+
+
+    </script>
+  </div>
+  <style>
+    /* General Styles */
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+  
+    .container {
+      max-width: 450px;
+      width: 90%;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.5s ease-in-out;
+    }
+  
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 1em;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+  
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5em;
+    }
+  
+    label {
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 0.5em;
+    }
+  
+    input, select, textarea, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 0.95rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-sizing: border-box;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+  
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 175, 125, 0.4);
+      transform: scale(1.02);
+    }
+  
+    textarea {
+      resize: none;
+      height: 80px;
+    }
+  
+    button {
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      padding: 12px;
+      border-radius: 8px;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+  
+    button:hover {
+      background-color: #45a049;
+      transform: translateY(-2px);
+    }
+  
+    .button-secondary {
+      background-color: #ff4d4d;
+    }
+  
+    .button-secondary:hover {
+      background-color: #e60000;
+      transform: translateY(-2px);
+    }
+  
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+  
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+  
+    table th {
+      background-color: #f7f7f7;
+      font-weight: bold;
+    }
+  
+    table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  
+    table tr:hover {
+      background-color: #f1f1f1;
+    }
+  
+    /* Mobile Styles */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+  
+      h1 {
+        font-size: 1.5rem;
+      }
+  
+      input, select, textarea, button {
+        font-size: 0.9rem;
+      }
+  
+      table th, table td {
+        font-size: 0.85rem;
+        padding: 8px;
+      }
+    }
+  
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+  <style>
+    /* Contenedor para la tabla con scroll horizontal */
+    .table-container {
+      width: 100%;
+      overflow-x: auto; /* Activa scroll horizontal si la tabla es demasiado grande */
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #ffffff;
+    }
+  
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px; /* Evita que las columnas se compriman demasiado */
+    }
+  
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+  
+    table th {
+      background-color: #f7f7f7;
+      font-weight: bold;
+      text-align: left;
+    }
+  
+    table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  
+    table tr:hover {
+      background-color: #f1f1f1;
+    }
+  
+    /* Mobile Styles */
+    @media (max-width: 768px) {
+      table th, table td {
+        font-size: 0.85rem;
+        padding: 8px;
+      }
+    }
+  </style>
+  
+  
+  
+</body>
